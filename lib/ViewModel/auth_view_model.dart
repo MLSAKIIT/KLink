@@ -34,7 +34,7 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await supabase.auth.signInWithOtp(
+      await supabase.auth.signInWithOtp(
         email: _authEmail.value!,
         data: {'name': _authUsername.value},
       );
