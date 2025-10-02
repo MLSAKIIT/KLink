@@ -12,14 +12,42 @@ dependencies:
 
   supabase_flutter: ^2.0.0
   flutter_dotenv: ^6.0.0
+  provider: ^6.0.0
+  flutter_launcher_icons: ^0.14.0
+  google_fonts: ^6.0.0
+  flutter_otp_text_field: ^1.5.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+flutter_launcher_icons:
+  android: "klink" 
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icon/icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#000000"
+    theme_color: "#000000"
+  windows:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    icon_size: 48 
+  macos:
+    generate: true
+    image_path: "assets/icon/icon.png"
+
 flutter:
   uses-material-design: true
 
   assets:
     - .env
+    - assets/icon/icon.png
+    - assets/icon/icon_invert.png
+    - assets/images/background_one.png
+    - assets/images/background_two.png
