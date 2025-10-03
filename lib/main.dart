@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
-        '/': (context) => OtpVerificationView(),
+        '/': (context) => RegisterView(),
         '/login': (context) => LoginView(),
         '/register': (context) => RegisterView(),
         '/verify': (context) => OtpVerificationView(),

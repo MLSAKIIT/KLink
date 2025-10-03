@@ -5,14 +5,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthViewModel with ChangeNotifier {
   final AuthModel _authUsername = AuthModel(value: null, error: null);
   final AuthModel _authEmail = AuthModel(value: null, error: null);
-  final AuthModel _authPassword = AuthModel(value: null, error: null);
 
+  int? otp;
   bool _isLoading = false;
   String? _error;
 
   AuthModel get username => _authUsername;
   AuthModel get email => _authEmail;
-  AuthModel get password => _authPassword;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -22,9 +21,7 @@ class AuthViewModel with ChangeNotifier {
     if (_authUsername.value == null ||
         _authUsername.error != null ||
         _authEmail.value == null ||
-        _authEmail.error != null ||
-        _authPassword.value == null ||
-        _authPassword.error != null) {
+        _authEmail.error != null) {
       _error = null;
       return false;
     }
@@ -55,47 +52,10 @@ class AuthViewModel with ChangeNotifier {
     }
   }
 
-  Future<bool> confirmEmail(String code) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final response = await supabase.auth.verifyOTP(
-        type: OtpType.email,
-        token: code.trim(),
-      );
-
-      final uid = response.session?.user.id ?? supabase.auth.currentUser?.id;
-      if (uid == null) {
-        _error = "Verification failed. Try again.";
-        return false;
-      }
-
-      await supabase.from('profiles').upsert({
-        'id': uid,
-        'username': _authUsername.value,
-      });
-      return true;
-    } on AuthApiException catch (e) {
-      _error = "Registration failed: ${e.message}";
-      return false;
-    } on AuthException catch (e) {
-      _error = "Verification failed: ${e.message}";
-      return false;
-    } catch (e) {
-      _error = "Verification failed: ${e.toString().split(':').last.trim()}";
-      return false;
-    } finally {
-      _isLoading = false;
+  Future<bool> confirmOtp(String otpCode) async {
+    if (_authEmail.value == null) {
+      _error = "Email address not found. Please go back.";
       notifyListeners();
-    }
-  }
-
-  Future<bool> signIn() async {
-    if (_authEmail.value == null ||
-        _authEmail.error != null ||
-        _authPassword.value == null ||
-        _authPassword.error != null) {
       return false;
     }
 
@@ -104,17 +64,43 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await supabase.auth.signInWithPassword(
+      final AuthResponse response = await supabase.auth.verifyOTP(
+        type: OtpType.email,
+        token: otpCode.trim(),
         email: _authEmail.value!,
-        password: _authPassword.value!,
       );
 
-      final ok = response.user != null;
+      final bool success = response.session != null;
 
-      if (!ok) {
-        _error = "Login failed. Please try again.";
+      if (!success) {
+        _error = "Verification failed. The code may be invalid or expired.";
       }
-      return ok;
+      return success;
+    } on AuthException catch (e) {
+      _error = "Verification failed: ${e.message}";
+      return false;
+    } catch (e) {
+      _error = "An unexpected error occurred. Please try again.";
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> signIn() async {
+    if (_authEmail.value == null || _authEmail.error != null) {
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await supabase.auth.signInWithOtp(email: _authEmail.value!);
+
+      return true;
     } on AuthException catch (e) {
       _error = 'Login failed: ${e.message}';
       return false;
@@ -166,28 +152,6 @@ class AuthViewModel with ChangeNotifier {
     } else {
       _authEmail
         ..value = email
-        ..error = null;
-    }
-    _error = null;
-    notifyListeners();
-  }
-
-  void verifyPassword(String password) {
-    final bool valid =
-        password.length >= 8 &&
-        RegExp(r'[A-Z]').hasMatch(password) &&
-        RegExp(r'[a-z]').hasMatch(password) &&
-        RegExp(r'[0-9]').hasMatch(password) &&
-        RegExp(r'[!@#%^&*(),.?":{}|<>]').hasMatch(password);
-
-    if (!valid) {
-      _authPassword
-        ..value = null
-        ..error =
-            'Password must be at least 8 chars with upper, lower, number, special';
-    } else {
-      _authPassword
-        ..value = password
         ..error = null;
     }
     _error = null;
