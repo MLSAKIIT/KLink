@@ -69,7 +69,7 @@ class _LoginViewState extends State<LoginView> {
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: screenWidth / 16,
-                          vertical: screenDim.size.height / 5,
+                          vertical: screenDim.size.height / 4.5,
                         ),
                         child: Card(
                           shape: RoundedRectangleBorder(
