@@ -1,0 +1,1 @@
+ /home/DotBox/Programming/flutter/KLink/.dart_tool/flutter_build/480689322bfc68f07de338987b07ff74/native_assets.json: 
