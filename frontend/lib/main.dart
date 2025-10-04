@@ -5,12 +5,16 @@ import 'package:app_links/app_links.dart';
 import 'config/supabase_config.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
+import 'services/widget_background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Supabase with deep link support
   await SupabaseConfig.initialize();
+
+  // Initialize background service for widget updates
+  await WidgetBackgroundService.initialize();
 
   Supabase.instance.client.auth.onAuthStateChange.listen((data) {});
 

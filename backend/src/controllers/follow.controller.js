@@ -1,14 +1,10 @@
 const prisma = require('../config/prisma');
 
-/**
- * Follow a user
- */
 const followUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const followerId = req.user.id;
 
-        // Get follower's internal ID
         const followerUser = await prisma.user.findUnique({
             where: { supabaseId: followerId },
             select: { id: true }
@@ -18,7 +14,6 @@ const followUser = async (req, res) => {
             return res.status(404).json({ error: 'Follower user not found' });
         }
 
-        // Find target user by ID or username
         const targetUser = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -33,12 +28,10 @@ const followUser = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Can't follow yourself
         if (targetUser.id === followerUser.id) {
             return res.status(400).json({ error: 'Cannot follow yourself' });
         }
 
-        // Check if already following
         const existingFollow = await prisma.follow.findUnique({
             where: {
                 followerId_followingId: {
@@ -69,15 +62,11 @@ const followUser = async (req, res) => {
     }
 };
 
-/**
- * Unfollow a user
- */
 const unfollowUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const followerId = req.user.id;
 
-        // Get follower's internal ID
         const followerUser = await prisma.user.findUnique({
             where: { supabaseId: followerId },
             select: { id: true }
@@ -87,7 +76,6 @@ const unfollowUser = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Find target user by ID or username
         const targetUser = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -118,15 +106,11 @@ const unfollowUser = async (req, res) => {
     }
 };
 
-/**
- * Get user's followers
- */
 const getFollowers = async (req, res) => {
     try {
         const { userId } = req.params;
         const { limit = 50, offset = 0 } = req.query;
 
-        // Find user by ID or username
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -168,15 +152,11 @@ const getFollowers = async (req, res) => {
     }
 };
 
-/**
- * Get users that user follows
- */
 const getFollowing = async (req, res) => {
     try {
         const { userId } = req.params;
         const { limit = 50, offset = 0 } = req.query;
 
-        // Find user by ID or username
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -218,15 +198,11 @@ const getFollowing = async (req, res) => {
     }
 };
 
-/**
- * Check if current user is following another user
- */
 const checkFollowing = async (req, res) => {
     try {
         const { userId } = req.params;
         const followerId = req.user.id;
 
-        // Get follower's internal ID
         const followerUser = await prisma.user.findUnique({
             where: { supabaseId: followerId },
             select: { id: true }
@@ -236,7 +212,6 @@ const checkFollowing = async (req, res) => {
             return res.json({ isFollowing: false });
         }
 
-        // Find target user by ID or username
         const targetUser = await prisma.user.findFirst({
             where: {
                 OR: [

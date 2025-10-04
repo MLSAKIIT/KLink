@@ -1,8 +1,5 @@
 const Joi = require('joi');
 
-/**
- * Validation middleware factory
- */
 const validate = (schema) => {
     return (req, res, next) => {
         const { error } = schema.validate(req.body, { abortEarly: false });
@@ -23,7 +20,6 @@ const validate = (schema) => {
     };
 };
 
-// Validation schemas
 const schemas = {
     signup: Joi.object({
         email: Joi.string().email().required(),

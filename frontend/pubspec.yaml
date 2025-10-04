@@ -50,6 +50,10 @@ dependencies:
   image_picker: ^1.0.7
   timeago: ^3.6.1
   
+  # Home Screen Widget
+  home_widget: ^0.7.0
+  workmanager: ^0.9.0
+  
   # Storage
   shared_preferences: ^2.2.2
   

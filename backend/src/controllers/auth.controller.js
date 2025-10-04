@@ -3,28 +3,20 @@ const prisma = require('../config/prisma');
 
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || '@kiit.ac.in';
 
-/**
- * Validate email domain
- */
 const validateEmailDomain = (email) => {
     return email.endsWith(ALLOWED_EMAIL_DOMAIN);
 };
 
-/**
- * Sign up new user with Supabase Auth and Prisma
- */
 const signup = async (req, res) => {
     try {
         const { email, password, fullName, username } = req.body;
 
-        // Validate email domain
         if (!validateEmailDomain(email)) {
             return res.status(400).json({
                 error: `Registration is only allowed for ${ALLOWED_EMAIL_DOMAIN} email addresses`
             });
         }
 
-        // Check if username is already taken in Prisma
         if (username) {
             const existingUser = await prisma.user.findUnique({
                 where: { username }
@@ -34,7 +26,6 @@ const signup = async (req, res) => {
             }
         }
 
-        // Create user with Supabase Auth
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
@@ -50,7 +41,6 @@ const signup = async (req, res) => {
             return res.status(400).json({ error: authError.message });
         }
 
-        // Create user profile in Prisma
         const user = await prisma.user.create({
             data: {
                 email,
@@ -60,7 +50,6 @@ const signup = async (req, res) => {
             }
         });
 
-        // Sign in to get session token
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password
@@ -87,14 +76,10 @@ const signup = async (req, res) => {
     }
 };
 
-/**
- * Login user
- */
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Validate email domain
         if (!validateEmailDomain(email)) {
             return res.status(400).json({
                 error: `Login is only allowed for ${ALLOWED_EMAIL_DOMAIN} email addresses`
@@ -110,7 +95,6 @@ const login = async (req, res) => {
             return res.status(401).json({ error: error.message });
         }
 
-        // Get user profile from Prisma
         const user = await prisma.user.findUnique({
             where: { supabaseId: data.user.id },
             select: {
@@ -135,9 +119,6 @@ const login = async (req, res) => {
     }
 };
 
-/**
- * Google OAuth authentication
- */
 const googleAuth = async (req, res) => {
     try {
         const { idToken } = req.body;
@@ -146,7 +127,6 @@ const googleAuth = async (req, res) => {
             return res.status(400).json({ error: 'ID token is required' });
         }
 
-        // Verify Google token and sign in
         const { data, error } = await supabase.auth.signInWithIdToken({
             provider: 'google',
             token: idToken
@@ -156,9 +136,7 @@ const googleAuth = async (req, res) => {
             return res.status(401).json({ error: error.message });
         }
 
-        // Validate email domain
         if (!validateEmailDomain(data.user.email)) {
-            // Delete the user if email domain is not allowed
             await supabaseAdmin.auth.admin.deleteUser(data.user.id);
 
             return res.status(403).json({
@@ -166,7 +144,6 @@ const googleAuth = async (req, res) => {
             });
         }
 
-        // Create or update user profile in Prisma
         const user = await prisma.user.upsert({
             where: { supabaseId: data.user.id },
             update: {
@@ -201,9 +178,6 @@ const googleAuth = async (req, res) => {
     }
 };
 
-/**
- * Logout user
- */
 const logout = async (req, res) => {
     try {
         const { error } = await supabase.auth.signOut();
@@ -219,15 +193,10 @@ const logout = async (req, res) => {
     }
 };
 
-/**
- * Get current user
- */
 const getCurrentUser = async (req, res) => {
     try {
-        // User is already attached by auth middleware
         const userId = req.user.id;
 
-        // Get user profile from Prisma
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: {
@@ -268,15 +237,11 @@ const getCurrentUser = async (req, res) => {
     }
 };
 
-/**
- * Update user profile
- */
 const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
         const { name, username, bio, avatarUrl } = req.body;
 
-        // Get user from Prisma using supabaseId
         const currentUser = await prisma.user.findUnique({
             where: { supabaseId: userId }
         });
@@ -285,7 +250,6 @@ const updateProfile = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if username is already taken by another user
         if (username) {
             const existingUser = await prisma.user.findFirst({
                 where: {
@@ -298,7 +262,6 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Update user profile
         const user = await prisma.user.update({
             where: { id: currentUser.id },
             data: {
@@ -328,15 +291,11 @@ const updateProfile = async (req, res) => {
     }
 };
 
-/**
- * Get user by ID or username
- */
 const getUserById = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUserId = req.user?.id;
 
-        // Try to find by ID first, then by username
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -366,7 +325,6 @@ const getUserById = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if current user follows this user
         let isFollowing = false;
         if (currentUserId) {
             const currentUser = await prisma.user.findUnique({

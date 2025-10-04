@@ -1,8 +1,5 @@
 const prisma = require('../config/prisma');
 
-/**
- * Get comments for a post
- */
 const getCommentsByPost = async (req, res) => {
     try {
         const { postId } = req.params;
@@ -34,15 +31,11 @@ const getCommentsByPost = async (req, res) => {
     }
 };
 
-/**
- * Create new comment
- */
 const createComment = async (req, res) => {
     try {
         const { postId, content } = req.body;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -52,7 +45,6 @@ const createComment = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Verify post exists
         const post = await prisma.post.findUnique({
             where: { id: postId },
             select: { id: true }
@@ -90,15 +82,11 @@ const createComment = async (req, res) => {
     }
 };
 
-/**
- * Delete comment
- */
 const deleteComment = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -108,7 +96,6 @@ const deleteComment = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if comment belongs to user
         const existingComment = await prisma.comment.findUnique({
             where: { id },
             select: { userId: true }

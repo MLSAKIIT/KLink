@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/post_model.dart';
@@ -81,6 +82,58 @@ class PostService {
     } else {
       final error = jsonDecode(response.body);
       throw Exception(error['error'] ?? 'Failed to create post');
+    }
+  }
+
+  // Upload image
+  Future<String> uploadImage(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.postsEndpoint}/upload-image'),
+      );
+
+      // Add authorization header
+      if (accessToken != null) {
+        request.headers['Authorization'] = 'Bearer $accessToken';
+      }
+
+      // Add image file
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image',
+          imageFile.path,
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['imageUrl'];
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? 'Failed to upload image');
+      }
+    } catch (e) {
+      throw Exception('Failed to upload image: $e');
+    }
+  }
+
+  // Get following posts (for widget)
+  Future<List<Post>> getFollowingPosts({int limit = 10}) async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConfig.baseUrl}${ApiConfig.postsEndpoint}/following/posts?limit=$limit'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data['posts'] as List).map((json) => Post.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load following posts');
     }
   }
 

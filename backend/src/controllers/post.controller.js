@@ -1,14 +1,11 @@
 const prisma = require('../config/prisma');
+const { uploadToSupabase, deleteFromSupabase } = require('../middleware/upload.middleware');
 
-/**
- * Get all posts (feed) with pagination
- */
 const getAllPosts = async (req, res) => {
     try {
         const { limit = 20, offset = 0 } = req.query;
         const currentUserId = req.user?.id;
 
-        // Get current user's internal ID if authenticated
         let currentUserInternalId = null;
         if (currentUserId) {
             const currentUser = await prisma.user.findUnique({
@@ -52,7 +49,6 @@ const getAllPosts = async (req, res) => {
             }
         });
 
-        // Transform posts to include isLiked flag
         const transformedPosts = posts.map(post => ({
             ...post,
             commentCount: post._count.comments,
@@ -72,9 +68,6 @@ const getAllPosts = async (req, res) => {
     }
 };
 
-/**
- * Get single post by ID
- */
 const getPostById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -139,16 +132,12 @@ const getPostById = async (req, res) => {
     }
 };
 
-/**
- * Get posts by user ID or username
- */
 const getUserPosts = async (req, res) => {
     try {
         const { userId } = req.params;
         const { limit = 20, offset = 0 } = req.query;
         const currentUserId = req.user?.id;
 
-        // Find user by ID or username
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -223,15 +212,11 @@ const getUserPosts = async (req, res) => {
     }
 };
 
-/**
- * Create new post
- */
 const createPost = async (req, res) => {
     try {
         const { content, imageUrl } = req.body;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -268,11 +253,16 @@ const createPost = async (req, res) => {
         res.status(201).json({
             message: 'Post created successfully',
             post: {
-                ...post,
+                id: post.id,
+                content: post.content,
+                imageUrl: post.imageUrl,
+                userId: post.userId,
+                createdAt: post.createdAt,
+                updatedAt: post.updatedAt,
+                user: post.user,
                 commentCount: post._count.comments,
                 likeCount: post._count.likes,
-                isLiked: false,
-                _count: undefined
+                isLiked: false
             }
         });
     } catch (error) {
@@ -281,16 +271,12 @@ const createPost = async (req, res) => {
     }
 };
 
-/**
- * Update post
- */
 const updatePost = async (req, res) => {
     try {
         const { id } = req.params;
         const { content, imageUrl } = req.body;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -300,7 +286,6 @@ const updatePost = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if post exists and belongs to user
         const existingPost = await prisma.post.findUnique({
             where: { id },
             select: { userId: true }
@@ -354,15 +339,11 @@ const updatePost = async (req, res) => {
     }
 };
 
-/**
- * Delete post
- */
 const deletePost = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -372,7 +353,6 @@ const deletePost = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if post exists and belongs to user
         const existingPost = await prisma.post.findUnique({
             where: { id },
             select: { userId: true }
@@ -397,15 +377,11 @@ const deletePost = async (req, res) => {
     }
 };
 
-/**
- * Like a post
- */
 const likePost = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -415,7 +391,6 @@ const likePost = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if post exists
         const post = await prisma.post.findUnique({
             where: { id },
             select: { id: true }
@@ -425,7 +400,6 @@ const likePost = async (req, res) => {
             return res.status(404).json({ error: 'Post not found' });
         }
 
-        // Check if already liked
         const existingLike = await prisma.like.findUnique({
             where: {
                 postId_userId: {
@@ -456,15 +430,11 @@ const likePost = async (req, res) => {
     }
 };
 
-/**
- * Unlike a post
- */
 const unlikePost = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // Get user's internal ID
         const user = await prisma.user.findUnique({
             where: { supabaseId: userId },
             select: { id: true }
@@ -490,6 +460,85 @@ const unlikePost = async (req, res) => {
     }
 };
 
+const uploadImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        const imageUrl = await uploadToSupabase(req.file, 'posts');
+        
+        res.status(200).json({
+            message: 'Image uploaded successfully',
+            imageUrl
+        });
+    } catch (error) {
+        console.error('Upload image error:', error);
+        res.status(500).json({ error: error.message || 'Failed to upload image' });
+    }
+};
+
+const getFollowingPosts = async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+        const userId = req.user.id;
+
+        const user = await prisma.user.findUnique({
+            where: { supabaseId: userId },
+            select: { id: true }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const following = await prisma.follow.findMany({
+            where: { followerId: user.id },
+            select: { followingId: true }
+        });
+
+        const followingIds = following.map(f => f.followingId);
+
+        const posts = await prisma.post.findMany({
+            where: {
+                userId: { in: followingIds },
+                imageUrl: { not: null } // Only posts with images for widget
+            },
+            take: parseInt(limit),
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        name: true,
+                        avatarUrl: true
+                    }
+                },
+                _count: {
+                    select: {
+                        comments: true,
+                        likes: true
+                    }
+                }
+            }
+        });
+
+        const transformedPosts = posts.map(post => ({
+            ...post,
+            commentCount: post._count.comments,
+            likeCount: post._count.likes,
+            isLiked: false,
+            _count: undefined
+        }));
+
+        res.json({ posts: transformedPosts, count: transformedPosts.length });
+    } catch (error) {
+        console.error('Get following posts error:', error);
+        res.status(500).json({ error: 'Failed to fetch following posts' });
+    }
+};
+
 module.exports = {
     getAllPosts,
     getPostById,
@@ -498,5 +547,7 @@ module.exports = {
     updatePost,
     deletePost,
     likePost,
-    unlikePost
+    unlikePost,
+    uploadImage,
+    getFollowingPosts
 };

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:frontend/models/user_model.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/config/supabase_config.dart';
+import 'package:frontend/services/widget_background_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -65,6 +66,10 @@ class AuthProvider with ChangeNotifier {
           );
         }
       }
+
+      // Start widget background updates
+      await WidgetBackgroundService.startPeriodicUpdate();
+      await WidgetBackgroundService.triggerImmediateUpdate(_accessToken);
 
       _isLoading = false;
       notifyListeners();
@@ -217,6 +222,9 @@ class AuthProvider with ChangeNotifier {
       // Continue with logout even if service call fails
     }
 
+    // Stop widget updates
+    await WidgetBackgroundService.stopPeriodicUpdate();
+    
     await _clearSession();
     notifyListeners();
   }

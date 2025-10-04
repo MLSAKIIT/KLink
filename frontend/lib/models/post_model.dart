@@ -27,24 +27,24 @@ class Post {
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-      id: json['id'],
-      content: json['content'],
-      imageUrl: json['imageUrl'],
-      userId: json['userId'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-      user: User.fromJson(json['user']),
-      commentCount: json['commentCount'] ?? 0,
-      likeCount: json['likeCount'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
+      id: json['id'] as String? ?? '',
+      content: json['content'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      userId: json['userId'] as String? ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : DateTime.now(),
+      user: User.fromJson(json['user'] as Map<String, dynamic>? ?? {}),
+      commentCount: json['commentCount'] as int? ?? 0,
+      likeCount: json['likeCount'] as int? ?? 0,
+      isLiked: json['isLiked'] as bool? ?? false,
     );
   }
 
-  Post copyWith({
-    bool? isLiked,
-    int? likeCount,
-    int? commentCount,
-  }) {
+  Post copyWith({bool? isLiked, int? likeCount, int? commentCount}) {
     return Post(
       id: id,
       content: content,

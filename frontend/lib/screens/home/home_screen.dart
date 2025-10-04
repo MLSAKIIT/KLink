@@ -6,7 +6,9 @@ import 'package:frontend/models/post_model.dart';
 import 'package:frontend/screens/profile/profile_screen.dart';
 import 'package:frontend/screens/search/search_screen.dart';
 import 'package:frontend/screens/auth/login_screen.dart';
+import 'package:frontend/screens/create_post/create_post_screen.dart';
 import 'package:frontend/widgets/post_card.dart';
+import 'package:frontend/services/widget_background_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -109,13 +111,26 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
-              onPressed: () {
-                // TODO: Implement create post
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Create post - Coming soon')),
+              onPressed: () async {
+                // Navigate to create post screen
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreatePostScreen(),
+                  ),
                 );
+                // Reload posts if a post was created
+                if (result == true) {
+                  _loadPosts();
+                  // Update widget with latest posts
+                  final authProvider = context.read<AuthProvider>();
+                  await WidgetBackgroundService.triggerImmediateUpdate(
+                    authProvider.accessToken,
+                  );
+                }
               },
-              child: const Icon(Icons.add),
+              backgroundColor: Colors.white,
+              child: const Icon(Icons.add, color: Colors.black),
             )
           : null,
     );

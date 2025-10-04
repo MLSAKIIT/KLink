@@ -1,8 +1,5 @@
 const { supabase } = require('../config/supabase');
 
-/**
- * Middleware to verify JWT token and attach user to request
- */
 const authenticateUser = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -13,14 +10,12 @@ const authenticateUser = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Verify token with Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
-        // Attach user to request
         req.user = user;
         req.token = token;
 
@@ -31,9 +26,6 @@ const authenticateUser = async (req, res, next) => {
     }
 };
 
-/**
- * Optional authentication - doesn't fail if no token
- */
 const optionalAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -50,7 +42,6 @@ const optionalAuth = async (req, res, next) => {
 
         next();
     } catch (error) {
-        // Continue without authentication
         next();
     }
 };

@@ -39,6 +39,11 @@ android {
     }
 }
 
+dependencies {
+    // Force WorkManager version to resolve duplicate class issue
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
+}
+
 flutter {
     source = "../.."
 }
