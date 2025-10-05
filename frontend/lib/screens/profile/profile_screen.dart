@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/services/post_service.dart';
 import 'package:frontend/services/follow_service.dart';
+import 'package:frontend/services/user_service.dart';
 import 'package:frontend/models/post_model.dart';
+import 'package:frontend/models/user_model.dart';
 import 'package:frontend/widgets/post_card.dart';
+import 'followers_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -18,6 +21,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late final PostService _postService;
   late final FollowService _followService;
+  late final UserService _userService;
+  User? _profileUser;
   List<Post> _userPosts = [];
   bool _isLoading = false;
   int _followersCount = 0;
@@ -30,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = context.read<AuthProvider>();
     _postService = PostService(authProvider.accessToken);
     _followService = FollowService(authProvider.accessToken);
+    _userService = UserService(authProvider.accessToken);
     _loadProfile();
   }
 
@@ -39,6 +45,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
+      final authProvider = context.read<AuthProvider>();
+      final currentUserId = authProvider.currentUser?.id;
+      final isOwnProfile = currentUserId == widget.userId;
+
+      // Fetch profile user data
+      final profileUser = await _userService.getUserById(widget.userId);
+
       // Load user posts
       final posts = await _postService.getUserPosts(widget.userId);
 
@@ -46,10 +59,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final followers = await _followService.getFollowers(widget.userId);
       final following = await _followService.getFollowing(widget.userId);
 
+      // Check if following this user (only if not own profile)
+      bool isFollowing = false;
+      if (!isOwnProfile && currentUserId != null) {
+        isFollowing = await _followService.checkFollowing(widget.userId);
+      }
+
       setState(() {
+        _profileUser = profileUser;
         _userPosts = posts;
         _followersCount = followers.length;
         _followingCount = following.length;
+        _isFollowing = isFollowing;
         _isLoading = false;
       });
     } catch (e) {
@@ -120,15 +141,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           CircleAvatar(
                             radius: 40,
                             backgroundColor: Colors.grey[800],
-                            child: Text(
-                              currentUser?.name.substring(0, 1).toUpperCase() ??
-                                  'U',
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                            backgroundImage: _profileUser?.avatarUrl != null
+                                ? NetworkImage(_profileUser!.avatarUrl!)
+                                : null,
+                            child: _profileUser?.avatarUrl == null
+                                ? Text(
+                                    _profileUser?.name.substring(0, 1).toUpperCase() ??
+                                        'U',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
                           ),
                           const SizedBox(width: 20),
                           Expanded(
@@ -138,14 +164,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _buildStatColumn(
                                   _userPosts.length.toString(),
                                   'Posts',
+                                  onTap: null,
                                 ),
                                 _buildStatColumn(
                                   _followersCount.toString(),
                                   'Followers',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => FollowersScreen(
+                                          userId: widget.userId,
+                                          title: 'Followers',
+                                          isFollowers: true,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 _buildStatColumn(
                                   _followingCount.toString(),
                                   'Following',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => FollowersScreen(
+                                          userId: widget.userId,
+                                          title: 'Following',
+                                          isFollowers: false,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -155,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                       // Name and Bio
                       Text(
-                        currentUser?.name ?? 'User',
+                        _profileUser?.name ?? 'User',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -164,17 +215,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '@${currentUser?.username ?? 'username'}',
+                        '@${_profileUser?.username ?? 'username'}',
                         style: TextStyle(color: Colors.grey[400], fontSize: 14),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        currentUser?.bio ?? 'No bio yet',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                      if (_profileUser?.bio != null && _profileUser!.bio!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _profileUser!.bio!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 16),
                       // Action Button
                       if (isOwnProfile)
@@ -254,8 +307,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatColumn(String count, String label) {
-    return Column(
+  Widget _buildStatColumn(String count, String label, {VoidCallback? onTap}) {
+    final column = Column(
       children: [
         Text(
           count,
@@ -269,5 +322,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(label, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
       ],
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: column,
+        ),
+      );
+    }
+
+    return column;
   }
 }

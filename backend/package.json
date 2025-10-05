@@ -12,6 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "verify:trigger": "node verify-trigger.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

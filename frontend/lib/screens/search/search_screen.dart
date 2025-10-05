@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:frontend/models/user_model.dart' as models;
 import 'package:frontend/widgets/user_card.dart';
+import 'package:frontend/services/user_service.dart';
+import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/screens/profile/profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -33,10 +37,13 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      // TODO: Implement search endpoint in backend
-      // For now, just show empty results
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userService = UserService(authProvider.accessToken);
+      
+      final users = await userService.searchUsers(query);
+      
       setState(() {
-        _searchResults = [];
+        _searchResults = users;
         _isLoading = false;
       });
     } catch (e) {
@@ -109,7 +116,14 @@ class _SearchScreenState extends State<SearchScreen> {
                         return UserCard(
                           user: _searchResults[index],
                           onTap: () {
-                            // TODO: Navigate to user profile
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProfileScreen(
+                                  userId: _searchResults[index].id,
+                                ),
+                              ),
+                            );
                           },
                         );
                       },

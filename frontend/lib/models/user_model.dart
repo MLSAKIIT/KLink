@@ -1,11 +1,11 @@
 class User {
   final String id;
-  final String email;
+  final String? email;
   final String name;
   final String? username;
   final String? bio;
   final String? avatarUrl;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final int? postsCount;
   final int? followersCount;
   final int? followingCount;
@@ -13,12 +13,12 @@ class User {
 
   User({
     required this.id,
-    required this.email,
+    this.email,
     required this.name,
     this.username,
     this.bio,
     this.avatarUrl,
-    required this.createdAt,
+    this.createdAt,
     this.postsCount,
     this.followersCount,
     this.followingCount,
@@ -28,14 +28,14 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as String? ?? '',
-      email: json['email'] as String? ?? '',
+      email: json['email'] as String?,
       name: json['name'] as String? ?? 'Unknown User',
       username: json['username'] as String?,
       bio: json['bio'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
-          : DateTime.now(),
+          : null,
       postsCount: json['postsCount'] as int?,
       followersCount: json['followersCount'] as int?,
       followingCount: json['followingCount'] as int?,
@@ -51,7 +51,7 @@ class User {
       'username': username,
       'bio': bio,
       'avatarUrl': avatarUrl,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
       'postsCount': postsCount,
       'followersCount': followersCount,
       'followingCount': followingCount,

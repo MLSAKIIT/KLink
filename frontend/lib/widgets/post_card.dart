@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/post_model.dart';
+import '../screens/comments/comments_screen.dart';
+import '../screens/profile/profile_screen.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class PostCard extends StatelessWidget {
@@ -29,38 +31,67 @@ class PostCard extends StatelessWidget {
             // User Info Row
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey[800],
-                  child: Text(
-                    post.user.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileScreen(
+                          userId: post.user.id,
+                        ),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.grey[800],
+                    backgroundImage: post.user.avatarUrl != null
+                        ? NetworkImage(post.user.avatarUrl!)
+                        : null,
+                    child: post.user.avatarUrl == null
+                        ? Text(
+                            post.user.name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.user.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileScreen(
+                            userId: post.user.id,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '@${post.user.username}',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 12,
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.user.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                    ],
+                        Text(
+                          '@${post.user.username}',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Text(
@@ -147,11 +178,17 @@ class PostCard extends StatelessWidget {
                 // Comment Button
                 IconButton(
                   icon: const Icon(Icons.chat_bubble_outline, color: Colors.grey),
-                  onPressed: () {
-                    // TODO: Navigate to comments
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Comments - Coming soon')),
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CommentsScreen(post: post),
+                      ),
                     );
+                    // result is the new comment count
+                    if (result != null && result is int) {
+                      // You can update the comment count here if needed
+                    }
                   },
                 ),
                 Text(
