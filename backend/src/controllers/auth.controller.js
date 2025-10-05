@@ -41,14 +41,58 @@ const signup = async (req, res) => {
             return res.status(400).json({ error: authError.message });
         }
 
-        const user = await prisma.user.create({
-            data: {
-                email,
-                name: fullName,
-                username,
-                supabaseId: authData.user.id
+        // Wait for database trigger to create user record
+        // Implement retry logic to handle race condition
+        let user = null;
+        let attempts = 0;
+        const maxAttempts = 5;
+        const delayMs = 500;
+
+        while (!user && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, delayMs * attempts));
+            
+            user = await prisma.user.findUnique({
+                where: { supabaseId: authData.user.id },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    username: true,
+                    bio: true,
+                    avatarUrl: true
+                }
+            });
+            
+            attempts++;
+        }
+
+        // If trigger didn't create the user, create it manually as fallback
+        if (!user) {
+            console.warn('Trigger did not create user, creating manually');
+            try {
+                user = await prisma.user.create({
+                    data: {
+                        email,
+                        name: fullName,
+                        username,
+                        supabaseId: authData.user.id
+                    },
+                    select: {
+                        id: true,
+                        email: true,
+                        name: true,
+                        username: true,
+                        bio: true,
+                        avatarUrl: true
+                    }
+                });
+            } catch (createError) {
+                console.error('Failed to create user manually:', createError);
+                // Clean up auth user if profile creation fails
+                await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+                return res.status(500).json({ error: 'Failed to create user profile' });
             }
-        });
+        }
 
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email,
@@ -144,6 +188,8 @@ const googleAuth = async (req, res) => {
             });
         }
 
+        // Use upsert to handle both new and existing users
+        // This is necessary for OAuth since the trigger might not fire consistently
         const user = await prisma.user.upsert({
             where: { supabaseId: data.user.id },
             update: {
@@ -360,6 +406,61 @@ const getUserById = async (req, res) => {
     }
 };
 
+const searchUsers = async (req, res) => {
+    try {
+        const { q, limit = 20 } = req.query;
+
+        if (!q || q.trim().length === 0) {
+            return res.json({ users: [] });
+        }
+
+        const searchTerm = q.trim();
+
+        const users = await prisma.user.findMany({
+            where: {
+                OR: [
+                    {
+                        username: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        name: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        email: {
+                            contains: searchTerm,
+                            mode: 'insensitive'
+                        }
+                    }
+                ]
+            },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                name: true,
+                avatarUrl: true,
+                bio: true,
+                createdAt: true
+            },
+            take: parseInt(limit),
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        res.json({ users });
+    } catch (error) {
+        console.error('Search users error:', error);
+        res.status(500).json({ error: 'Failed to search users' });
+    }
+};
+
 module.exports = {
     signup,
     login,
@@ -367,5 +468,6 @@ module.exports = {
     logout,
     getCurrentUser,
     updateProfile,
-    getUserById
+    getUserById,
+    searchUsers
 };

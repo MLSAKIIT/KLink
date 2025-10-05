@@ -1,5 +1,18 @@
 -- KLink Database Schema
--- This schema extends Supabase Auth with custom tables
+-- ⚠️ DEPRECATED: This file is kept for reference only
+-- 
+-- The actual database schema is now managed by Prisma.
+-- See: backend/prisma/schema.prisma
+--
+-- For database triggers and RLS policies, use:
+-- - trigger_create_user.sql (auto-create user on signup)
+-- - rls_policies.sql (row-level security policies)
+--
+-- This file references a 'profiles' table that does NOT exist.
+-- The actual table is 'users' as defined in Prisma schema.
+-- 
+-- DO NOT RUN THIS FILE IN PRODUCTION
+-- ==========================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
