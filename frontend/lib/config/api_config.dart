@@ -3,7 +3,7 @@ class ApiConfig {
   // For Android Emulator: http://10.0.2.2:3000
   // For iOS Simulator: http://localhost:3000
   // For Physical Device: http://YOUR_COMPUTER_IP:3000
-  static const String baseUrl = 'https://k-link-back.vercel.app/api';
+  static const String baseUrl = 'https://k-link-seven.vercel.app/api';
 
   // Endpoints
   static const String authEndpoint = '/auth';
