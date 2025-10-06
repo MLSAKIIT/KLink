@@ -47,7 +47,7 @@ class FollowService {
   }) async {
     final response = await http.get(
       Uri.parse(
-        '${ApiConfig.baseUrl}${ApiConfig.followEndpoint}/$userId/followers?limit=$limit&offset=$offset',
+        '${ApiConfig.baseUrl}${ApiConfig.followEndpoint}/followers/$userId?limit=$limit&offset=$offset',
       ),
       headers: _headers,
     );
@@ -70,7 +70,7 @@ class FollowService {
   }) async {
     final response = await http.get(
       Uri.parse(
-        '${ApiConfig.baseUrl}${ApiConfig.followEndpoint}/$userId/following?limit=$limit&offset=$offset',
+        '${ApiConfig.baseUrl}${ApiConfig.followEndpoint}/following/$userId?limit=$limit&offset=$offset',
       ),
       headers: _headers,
     );
@@ -89,7 +89,7 @@ class FollowService {
   Future<bool> checkFollowing(String userId) async {
     final response = await http.get(
       Uri.parse(
-        '${ApiConfig.baseUrl}${ApiConfig.followEndpoint}/$userId/check',
+        '${ApiConfig.baseUrl}${ApiConfig.followEndpoint}/check/$userId',
       ),
       headers: _headers,
     );

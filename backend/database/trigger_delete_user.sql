@@ -7,13 +7,22 @@ DROP FUNCTION IF EXISTS handle_auth_user_deleted();
 
 -- Create the function that will be called by the trigger
 CREATE OR REPLACE FUNCTION handle_auth_user_deleted()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
 BEGIN
   -- Delete the user from the public.users table when deleted from auth.users
-  DELETE FROM public.users WHERE supabase_id = OLD.id;
+  DELETE FROM public.users WHERE supabase_id = OLD.id::text;
   RETURN OLD;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log error but don't fail the auth deletion
+    RAISE WARNING 'Error deleting user from public.users: %', SQLERRM;
+    RETURN OLD;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Create the trigger on auth.users table
 CREATE TRIGGER on_auth_user_deleted
